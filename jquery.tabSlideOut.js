@@ -76,6 +76,42 @@
             return available - parseInt(settings.otherOffset) - parseInt(settings.offset);
         }
 
+        //v2.3 Moved functions here that are needed in command code
+        var slideIn = function() {
+            var size;
+            var edge = getSettings().tabLocation;
+            switch ( edge )
+            {
+                case 'top':
+                case 'bottom':
+                    size = parseInt(panel.outerHeight()+1, 10) + 'px';
+                    break;
+                case 'left':
+                case 'right':
+                    size = parseInt(panel.outerWidth()+1, 10) + 'px'; //v2.3 Calc panel width
+                    break;
+            }
+            
+            var param = [];
+            param[edge] = '-' + size;
+            panel.removeClass('ui-slideouttab-open').animate(param, getSettings().speed, function(){
+                panel.trigger('slideouttabclose');
+                getSettings().onClose();
+            });
+        };
+
+        var slideOut = function() {
+            var param = [];
+            var edge = getSettings().tabLocation;
+            
+            // show everything except the border along the edge we're on
+            param[edge] = '-'+borderWidth(panel,edge)+'px';
+            panel.animate(param,  settings.speed, function(){
+                panel.addClass('ui-slideouttab-open').trigger('slideouttabopen');
+                settings.onOpen();
+            });
+        };
+
         var panel = this;
             
         if ( typeof callerSettings == 'string' )
@@ -100,8 +136,17 @@
                 case 'bounce':
                     this.children('.ui-slideouttab-handle').trigger('bounce');
                     break;
+                case 'updateSize':
+                	//v2.3 Reset position when panel size has changed
+                	if (isOpen()) {
+                		slideOut();
+                	}
+                	else { 
+                		slideIn();
+                	}
+                	break;
                 default:
-                    throw "Invalid tabSlideOut command";
+                    throw "Invalid tabSlideOut command: '"+callerSettings+"'"; //v2.3 More details
             }
         }
         else
@@ -129,6 +174,10 @@
                 onOpen: function(){}, // handler called after opening
                 onClose: function(){} // handler called after closing
             }, callerSettings||{});
+            
+            getSettings = function() { /* For access above */
+            	return settings;
+            }
 
             var edge = settings.tabLocation; 
             var handle = settings.tabHandle = $(settings.tabHandle,panel);
@@ -193,14 +242,14 @@
                 settings.handleOffset = '-'+borderWidth(panel,settings.handleOffsetFrom)+'px';
             }
             
-            var sizes = {
-                        panelWidth: parseInt(panel.outerWidth()+1, 10) + 'px',
-                        panelHeight: parseInt(panel.outerHeight()+1, 10) + 'px',
-                        handleWidth: parseInt(handle.outerWidth(), 10) + 'px',
-                        handleHeight: parseInt(handle.outerHeight()+1, 10) + 'px'
-                    };
+          //v2.3 Panel and handle size is now dynamic
+          //  var sizes = {
+          //              panelWidth: parseInt(panel.outerWidth()+1, 10) + 'px',
+          //              panelHeight: parseInt(panel.outerHeight()+1, 10) + 'px',
+          //              handleWidth: parseInt(handle.outerWidth(), 10) + 'px',
+          //              handleHeight: parseInt(handle.outerHeight()+1, 10) + 'px'
+          //          };
 
-            // 
             if(edge === 'top' || edge === 'bottom') {
                 /* set left or right edges */
                 panel.css( settings.panelOffsetFrom, settings.offset);
@@ -216,12 +265,12 @@
                 }
             
                 if(edge === 'top') {
-                    panel.css({'top' : '-' + sizes.panelHeight});
-                    handle.css({'bottom' : '-' + sizes.handleHeight});
+                    panel.css({'top' : '-' + parseInt(panel.outerHeight()+1, 10) + 'px'}); //v2.3 Calc panel height
+                    handle.css({'bottom' : '-' + parseInt(handle.outerHeight()+1, 10) + 'px'});
                 }
                 else {
-                    panel.css({'bottom' : '-' + sizes.panelHeight, 'position' : 'fixed'});
-                    handle.css({'top' : '-' + sizes.handleHeight});
+                    panel.css({'bottom' : '-' + parseInt(panel.outerHeight()+1, 10) + 'px', 'position' : 'fixed'}); //v2.3 Calc panel height
+                    handle.css({'top' : '-' + parseInt(handle.outerHeight()+1, 10) + 'px'});
                 }
             }
 
@@ -241,10 +290,10 @@
                 }
             
                 if(edge === 'left') {
-                    panel.css({ 'left': '-' + sizes.panelWidth});
+                    panel.css({ 'left': '-' + parseInt(panel.outerWidth()+1, 10) + 'px'}); //v2.3 Always calc panel width
                     handle.css({'right' : '0'});
                 } else {
-                    panel.css({ 'right': '-' + sizes.panelWidth});
+                    panel.css({ 'right': '-' + parseInt(panel.outerWidth()+1, 10) + 'px'}); //v2.3 Always calc panel width
                     handle.css({'left' : '0'});
 
                     $('html').css('overflow-x', 'hidden');
@@ -257,37 +306,6 @@
             settings.toggleButton.click(function(event){
                 event.preventDefault();
             });
-
-            var slideIn = function() {
-                var size;
-                switch ( edge )
-                {
-                    case 'top':
-                    case 'bottom':
-                        size = sizes.panelHeight;
-                        break;
-                    case 'left':
-                    case 'right':
-                        size = sizes.panelWidth;
-                }
-                
-                var param = [];
-                param[edge] = '-' + size;
-                panel.removeClass('ui-slideouttab-open').animate(param, settings.speed, function(){
-                    panel.trigger('slideouttabclose');
-                    settings.onClose();
-                });
-            };
-
-            var slideOut = function() {
-                var param = [];
-                // show everything except the border along the edge we're on
-                param[edge] = '-'+borderWidth(panel,edge)+'px';
-                panel.animate(param,  settings.speed, function(){
-                    panel.addClass('ui-slideouttab-open').trigger('slideouttabopen');
-                    settings.onOpen();
-                });
-            };
             
             // animate the tab in and out
             var moveIn = [];
